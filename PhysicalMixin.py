@@ -41,36 +41,55 @@ class PhysicalMixin:
     # the acceleration
     _net_force = np.array([0.0, 0.0, 0.0])
 
-    def __init__(self, **args):
-        if "mass" in args:
-            if args["mass"] < 0:
+    # Coefficient of drag. None by default for this shapeless class
+    _coeff_drag = 0.0
+
+    # Real position, numpy
+    _position = np.array([0.0, 0.0, 0.0])
+
+    # Real velocity, nump
+    _velocity = np.array([0.0, 0.0, 0.0])
+
+    _static = False
+
+    # Crossectional area in drag. Limitation, assumed to be static.
+    _crosssectional_area = 0
+
+    def __init__(self, **kwargs):
+        # print('PhysicalMixin::__init__')
+        if "mass" in kwargs:
+            if kwargs["mass"] < 0:
                 raise UserWarning(
                     "Negative mass detected; sorry, but no Alcubierre drives are allowed in this universe!"
                 )
 
-            self.mass = args["mass"]
+            self.mass = kwargs["mass"]
 
         # https://en.wikipedia.org/wiki/Friction#Coefficient_of_friction
         # Static friction
-        if "coeff_static_friction" in args:
-            self._coeff_static_friction = args["coeff_static_friction"]
+        if "coeff_static_friction" in kwargs:
+            self._coeff_static_friction = kwargs["coeff_static_friction"]
 
         # Dynamic friction
-        if "coeff_dynamic_friction" in args:
-            self._coeff_dynamic_friction = args["coeff_dynamic_friction"]
+        if "coeff_dynamic_friction" in kwargs:
+            self._coeff_dynamic_friction = kwargs["coeff_dynamic_friction"]
 
         # https://en.wikipedia.org/wiki/Coefficient_of_restitution
         # Bounciness
-        if "coeff_restitution" in args:
-            self._coeff_restitution = args["coeff_restitution"]
+        if "coeff_restitution" in kwargs:
+            self._coeff_restitution = kwargs["coeff_restitution"]
 
         # Setup numpy "shadow" versions of physical constants
         # These can be updated out of tune with vpython-related things
         # vpython loop will sample this for display out of sync with the actual updates
-        if "pos" in args:
-            self._position = vpy2np(args["pos"])
+        if "pos" in kwargs:
+            self.position = vpy2np(kwargs["pos"])
 
-        self._velocity = args["velocity"]
+        if "velocity" in kwargs:
+            self._velocity = kwargs["velocity"]
+
+        if "static" in kwargs:
+            self._static = kwargs["static"]
 
     @property
     def mass(self):  # get mass
