@@ -110,12 +110,17 @@ class PhysicalMixin:
     def vpy_pos(self):
         return np2vpy(self._position)
 
-    # set numpy (physics) position
+    # get numpy (physics) position
     @property
     def position(self):
         return self._position
 
-    # get numpy (physics) position
+    # get numpy (physics) velocity
+    @property
+    def velocity(self):
+        return self._velocity
+
+    # set numpy (physics) position
     @position.setter
     def position(self, value):
         self._position = value
@@ -128,6 +133,33 @@ class PhysicalMixin:
     def net_force(self):
         return self._net_force
 
+    def pop_force(self):
+        self._net_force = np.array([0.0, 0.0, 0.0])
+
     # Add velocity to the object
     def add_velocity(self, value):
         self._velocity += value
+
+    # Cross-sectional area normal to the velocity
+    # Used for drag
+    @property
+    def crosssectional_area(self):
+        return self._crosssectional_area
+
+    @crosssectional_area.setter
+    def crosssectional_area(self, value):
+        self._crosssectional_area = value
+
+    @property
+    def coeff_drag(self):
+        return self._coeff_drag
+
+    # get if the object is static (unaffected by forces)
+    @property
+    def static(self):
+        return self._static
+
+    # set if object is static
+    @static.setter
+    def static(self, value):
+        self._static = value
