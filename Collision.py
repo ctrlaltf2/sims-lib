@@ -12,14 +12,14 @@ class Collision:
         self.depth = depth  # Length of A to B essentally
 
 
-# Check bounding box intersection before dispatching to more fine-grained collision checks
+# Check axis-aligned bounding box intersection before dispatching to more fine-grained collision checks
 def could_collide(aObj, bObj):
     # list in format [x0, y0, z0, x1, y1, z1]
     aBbox = aObj.bounding_box()
     bBbox = bObj.bounding_box()
 
     # Figured out 1D case with visualization as aid https://www.desmos.com/calculator/3otpyjpx3y
-    #   & moving two dice around in real life to help extend to the 3D case (I probably looked crazy)
+    #   & moving two dice around in real life to help extend to the 3D case
 
     # Unoptimized case (optimized involves interleaving the axis checks with the axis min/max finding)
     # TODO: If performance issues still after typechecking removal, optimize this as well
@@ -53,7 +53,7 @@ def does_collide(aObj, bObj):
     if aObj.physical_primitive_type == PhysicalPrimitiveType.SPHERE:  # Sphere v. x
         if (
             bObj.physical_primitive_type == PhysicalPrimitiveType.SPHERE
-        ):  # where x == Sphere
+        ):  # Sphere v. Sphere
             dist = np.linalg.norm(bObj.position - aObj.position)
 
             min_radius = aObj.radius + bObj.radius
