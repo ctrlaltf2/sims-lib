@@ -62,11 +62,35 @@ def does_collide(aObj, bObj):
                 # y-x
                 # y-z
 
-                closestA = 0
-        elif (
-            bObj.physical_primitive_type == PhysicalPrimitiveType.BOX
-        ):  # where x == Box
-            pass
+                return True
+        elif bObj.physical_primitive_type == PhysicalPrimitiveType.BOX:  # Sphere v. box
+            # TODO: Support rotated boxes.
+            # Optimization for rotated case: coord xform sphere and box such that box appears axis-aligned then run this same code :)
+
+            # This code assumes that box is axis-aligned
+            # Get the box's closest point to the center of the Sphere
+            # ref: https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_collision_detection#sphere_vs._aabb
+            box_closest = np.array(
+                [
+                    max(
+                        bObj.position[0] - bObj.size[0] / 2,
+                        min(aObj.position[0], bObj.position[0] + bObj.size[0] / 2),  #
+                    ),
+                    max(
+                        bObj.position[1] - bObj.size[1] / 2,
+                        min(aObj.position[1], bObj.position[1] + bObj.size[1] / 2),
+                    ),
+                    max(
+                        bObj.position[2] - bObj.size[2] / 2,
+                        min(aObj.position[2], bObj.position[2] + bObj.size[2] / 2),
+                    ),
+                ]
+            )
+
+            distance_box_to_sphere = np.linalg.norm(box_closest - aObj.position)
+
+            return distance_box_to_sphere < aObj.radius
+
     elif aObj.physical_primitive_type == PhysicalPrimitiveType.BOX:
         # Box v. x checks (none thus far)
         raise UserWarning(
