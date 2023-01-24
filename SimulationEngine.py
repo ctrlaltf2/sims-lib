@@ -1,6 +1,6 @@
-from vpython import standardAttributes
+from vpython import standardAttributes, rate
 
-from WorldEngine import WorldEngine
+from PhysicsEngine import PhysicsEngine
 from DisplayEngine import DisplayEngine
 
 from PhysicalMixin import PhysicalMixin
