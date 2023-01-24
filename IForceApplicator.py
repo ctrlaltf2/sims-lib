@@ -4,5 +4,5 @@ class IForceApplicator:
         return
 
     # Apply forces to world objects as relevant to whatever force applicator type this is
-    def apply_forces(self, objects):
+    def apply_forces(self, objects, dt):
         raise UserWarning("Please define apply_force.")
