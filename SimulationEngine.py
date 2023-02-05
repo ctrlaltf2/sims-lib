@@ -16,7 +16,7 @@ class SimulationEngine:
 
     # Objects in the simulation
     # Must be subclass of PhysicalMixin AND standardAttributes (vpython base class)
-    _objects = []
+    _objects: list = None
 
     # display_rate: Hz, how many times per second to update the display
     _display_rate: int
@@ -27,18 +27,30 @@ class SimulationEngine:
     # timestamp
     _t: float
 
-    def __init__(self, display_rate=60, physics_scalar=2):
+    def __init__(self, **kwargs):
         # Setup world engine
-        self._physics_engine = PhysicsEngine()
+        self._physics_engine = PhysicsEngine(**kwargs)
 
         # Setup display engine
-        self._display_engine = DisplayEngine()
+        if "scene" in kwargs:
+            self._display_engine = DisplayEngine(scene=kwargs["scene"])
+        else:
+            self._display_engine = DisplayEngine()
 
         # Store update rates
-        self._display_rate = display_rate
-        self._physics_scalar = physics_scalar
+        if "display_rate" in kwargs:
+            self._display_rate = kwargs["display_rate"]
+        else:
+            self._display_rate = 60
+
+        if "physics_scalar" in kwargs:
+            self._physics_scalar = kwargs["physics_scalar"]
+        else:
+            self._physics_scalar = 2
 
         self._t = 0
+
+        self._objects = []
 
     # Main function, blocks, runs canvas and display, syncs physics and display loops
     def run(self, n_sec=None, timescale=1.0):
@@ -65,11 +77,13 @@ class SimulationEngine:
         infinite_run = n_sec is None
 
         while (infinite_run) or (self._t < end_timestamp):
+            # print('loop')
             # Base loop rate == physics rate
             rate(physics_rate)
 
             # Physics update
             self._physics_engine.iterate(physics_dt)
+            # print('physics done')
 
             self._t += physics_dt
 
@@ -78,6 +92,7 @@ class SimulationEngine:
             # Every (self._physics_scalar) physics iterations is also a display iteration
             if frameskip == max_frameskip:  # if display update due, update display
                 self._display_engine.iterate()
+                # print('display done')
                 frameskip = 1
             else:  # else frameskip
                 frameskip += 1
@@ -116,6 +131,9 @@ class SimulationEngine:
             self._physics_engine.register_object(obj)
 
         self._display_engine.register_object(obj)
+
+        # And store one final reference to the object
+        self._objects.append(obj)
 
     def add_force_applicator(self, force_applicator):
         self._physics_engine.add_force_applicator(force_applicator)
