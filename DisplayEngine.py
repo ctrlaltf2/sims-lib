@@ -8,11 +8,16 @@ class DisplayEngine:
     # Vpython scene
     scene = None
 
-    _objects = []
+    _objects: list = None
 
     # constructor
-    def __init__(self):
-        self.scene = canvas()
+    def __init__(self, **kwargs):
+        if "scene" in kwargs:
+            self.scene = scene
+        else:
+            self.scene = canvas()
+
+        self._objects = []
 
     # Run one iteration of the display loop
     def iterate(self):
@@ -21,3 +26,6 @@ class DisplayEngine:
 
     def register_object(self, obj):
         self._objects.append(obj)
+
+    def register_canvas(self, c):
+        self.scene = c

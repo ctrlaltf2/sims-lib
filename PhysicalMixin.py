@@ -1,6 +1,6 @@
 import numpy as np
 
-from enum import Enum
+from enum import IntEnum
 
 from vpython import vector
 
@@ -14,7 +14,7 @@ def vpy2np(vpy_vec):
 
 
 # Enum for a quick differentiation between Physical* classes
-PhysicalPrimitiveType = Enum(
+PhysicalPrimitiveType = IntEnum(
     "physical_primitive_type",
     [
         "SPHERE",
@@ -25,35 +25,53 @@ PhysicalPrimitiveType = Enum(
 
 class PhysicalMixin:
     # Mass, kg
-    _mass = 0.0
-
-    # Coefficient of static friction, dimensionless
-    _coeff_static_friction = 0.0
-
-    # Coefficient of dynamic friction, dimensionless
-    _coeff_dynamic_friction = 0.0
+    _mass: float
 
     # Coefficient of restitution, e.g. bounciness. dimensionless
-    _coeff_restitution = 0.0
+    _coeff_restitution: float
 
     # Net force vector
     # World engine accumulates this over a time period(s) before eventually clearing it and applying
     # the acceleration
-    _net_force = np.array([0.0, 0.0, 0.0])
+    _net_force: np.ndarray
 
     # Coefficient of drag. None by default for this shapeless class
-    _coeff_drag = 0.0
+    _coeff_drag: float
 
     # Real position, numpy
-    _position = np.array([0.0, 0.0, 0.0])
+    _position: np.ndarray
 
-    # Real velocity, nump
-    _velocity = np.array([0.0, 0.0, 0.0])
+    # Previous position
+    _prev_position: np.ndarray
 
-    _static = False
+    # Real velocity, numpy
+    _velocity: np.ndarray
+
+    # No force interaction at all
+    _static: bool
+
+    # Force interaction, but this object can't be moved.
+    # If it's moving to start though, it keeps moving.
+    _immovable: bool
 
     # Crossectional area in drag. Limitation, assumed to be static.
-    _crosssectional_area = 0
+    _crosssectional_area: float
+
+    # Used for collision optimization, if the object is considered grounded or not and collisions
+    # should (temporarily) not apply.
+    grounded: bool
+
+    # Average speed over n iterations
+    _average_dist: float
+
+    # Average window size
+    _n_averages: int = 7
+
+    # Visitor function run by the engine on every iteration
+    _visitor = None
+
+    # Visitor state
+    _vistior_state = None
 
     def __init__(self, **kwargs):
         # print('PhysicalMixin::__init__')
@@ -64,32 +82,41 @@ class PhysicalMixin:
                 )
 
             self.mass = kwargs["mass"]
-
-        # https://en.wikipedia.org/wiki/Friction#Coefficient_of_friction
-        # Static friction
-        if "coeff_static_friction" in kwargs:
-            self._coeff_static_friction = kwargs["coeff_static_friction"]
-
-        # Dynamic friction
-        if "coeff_dynamic_friction" in kwargs:
-            self._coeff_dynamic_friction = kwargs["coeff_dynamic_friction"]
-
-        # https://en.wikipedia.org/wiki/Coefficient_of_restitution
-        # Bounciness
-        if "coeff_restitution" in kwargs:
-            self._coeff_restitution = kwargs["coeff_restitution"]
+        else:
+            self.mass = 1
 
         # Setup numpy "shadow" versions of physical constants
         # These can be updated out of tune with vpython-related things
         # vpython loop will sample this for display out of sync with the actual updates
         if "pos" in kwargs:
-            self.position = vpy2np(kwargs["pos"])
+            self._position = vpy2np(kwargs["pos"])
+        else:
+            self._position = np.array([0.0, 0.0, 0.0])
 
         if "velocity" in kwargs:
             self._velocity = kwargs["velocity"]
+        else:
+            self._velocity = np.array([0.0, 0.0, 0.0])
+
+        self._average_dist = 10.0  # hack but it works
 
         if "static" in kwargs:
             self._static = kwargs["static"]
+        else:
+            self._static = False
+
+        if "immovable" in kwargs:
+            self.immovable = kwargs["immovable"]
+        else:
+            self.immovable = False
+
+        if "visitor" in kwargs:
+            self._visitor = kwargs["visitor"]
+            self._visitor_state = {}
+
+        self._net_force = np.array([0.0, 0.0, 0.0])
+        self._prev_position = np.array([0.0, 0.0, 0.0])
+        self.grounded = False
 
     @property
     def mass(self):  # get mass
@@ -120,9 +147,21 @@ class PhysicalMixin:
     def velocity(self):
         return self._velocity
 
+    # set numpy (physics) velocity
+    @velocity.setter
+    def velocity(self, value):
+        if not self._immovable:
+            self._velocity = value
+
+    # Add velocity to the object
+    def add_velocity(self, value):
+        if not self._immovable:
+            self._velocity += value
+
     # set numpy (physics) position
     @position.setter
     def position(self, value):
+        # Update actual position
         self._position = value
 
     def add_force(self, np_vec):
@@ -135,10 +174,6 @@ class PhysicalMixin:
 
     def pop_force(self):
         self._net_force = np.array([0.0, 0.0, 0.0])
-
-    # Add velocity to the object
-    def add_velocity(self, value):
-        self._velocity += value
 
     # Cross-sectional area normal to the velocity
     # Used for drag
@@ -163,3 +198,26 @@ class PhysicalMixin:
     @static.setter
     def static(self, value):
         self._static = value
+
+    # get if the object is immovable or not
+    @property
+    def immovable(self):
+        return self._immovable
+
+    @immovable.setter
+    def immovable(self, value):
+        self._immovable = value
+
+    def update_average_movement(self):
+        # Update average speed
+        dp = self._position - self._prev_position
+        dist = np.linalg.norm(dp)
+        self._average_dist = (1 / self._n_averages) * dist + (
+            1 - 1 / self._n_averages
+        ) * self._average_dist
+
+        self._prev_position = self._position
+
+    def on_update(self, dt):
+        if self._visitor:
+            self._visitor(self._visitor_state, self, dt)

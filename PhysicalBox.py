@@ -11,9 +11,6 @@ class PhysicalBox(PhysicalMixin, box):
 
         self.physical_primitive_type = PhysicalPrimitiveType.BOX
 
-        # Very bad approximation
-        self.crossectional_area = self.size.x * self.size.z
-
         # https://en.wikipedia.org/wiki/Drag_coefficient
         self._coeff_drag = 1.05  # assumes velocity is normal to a face
         # limitation: the above doesn't support rotations technically, that requires a whole fluid simulation
@@ -24,6 +21,9 @@ class PhysicalBox(PhysicalMixin, box):
 
         super(PhysicalBox, self).__init__(**kwargs)
         super(PhysicalBox, self).setup(kwargs)
+
+        # Very bad approximation
+        self.crosssectional_area = self.size.x * self.size.z
 
     @property
     def volume(self):

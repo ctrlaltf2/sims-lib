@@ -1,8 +1,3 @@
-import numpy as np
-
-from IForceApplicator import IForceApplicator
-
-
 class AirResistanceApplicator(IForceApplicator):
     # ideal gas constant
     R = 8.31445  # J/(mol K)
@@ -51,7 +46,7 @@ class AirResistanceApplicator(IForceApplicator):
     def apply_forces(self, objects, dt):
         for obj in objects:
             C_D = obj.coeff_drag
-            A = obj.crossectional_area
+            A = obj.crosssectional_area
             h = obj.position[1]
 
             vel_mag = np.linalg.norm(obj.velocity)
